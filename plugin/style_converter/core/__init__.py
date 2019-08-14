@@ -6,7 +6,7 @@ import os
 import shutil
 from itertools import groupby
 from typing import Dict, Tuple, TypeVar
-
+from distutils.dir_util import copy_tree
 from qgis.core import QgsExpression
 
 from ...util.network_helper import http_get
@@ -149,7 +149,23 @@ def create_icons(style, output_directory):
     image_data, image_definition_data = _load_sprite_data(style)
     if image_data and image_definition_data:
         _create_icons(image_data, image_definition_data, output_directory)
+    else:
+        _alt_create_icons(output_directory)
 
+#design a new fx here to trigger if the image_data is null (in FATMAP case it is for now)
+#this fx will point to the icon folder included in the repo and copy into the correct path
+def _alt_create_icons(output_directory):
+	#create icon directory where symbols are already looking
+	icons_directory = os.path.join(output_directory, "icons")
+
+    #make the dir to put icons into
+    if not os.path.isdir(icons_directory):
+        os.makedirs(icons_directory)
+
+	current_directory = os.path.dirname(os.path.realpath(__file__))
+	fm_icons_directory = current_directory + '/FATMAP_icons/icons'
+	#copy icons from current FATMAP Icon dir into icon directory
+	copy_tree(fm_icons_directory, icons_directory)
 
 def _create_icons(image_base64, image_definition_data, output_directory):
     icons_directory = os.path.join(output_directory, "icons")
