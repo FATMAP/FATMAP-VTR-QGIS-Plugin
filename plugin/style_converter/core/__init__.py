@@ -13,8 +13,6 @@ from ...util.network_helper import http_get
 from .data import qgis_functions
 from .xml_helper import create_style_file, escape_xml
 
-import requests
-
 StrOrDict = TypeVar("StrOrDict", str, dict)
 
 
@@ -148,13 +146,12 @@ def create_icons(style, output_directory):
     :return:
     """
 
-    image_data, image_definition_data = _load_sprite_data(output_directory, style)
+    image_data, image_definition_data = _load_sprite_data(style)
     if image_data and image_definition_data:
         _create_icons(image_data, image_definition_data, output_directory)
 
 
-def _create_icons(image_path, image_definition_data, output_directory):
-    image_url = "https://api.mapbox.com/styles/v1/cerilewis/cjz0znhqy002n1cncaqj1jk6k/sprite.png?access_token=pk.eyJ1IjoiY2VyaWxld2lzIiwiYSI6ImNpcnp6bzhtcjAwM3cybnMyZHNjajgxOXIifQ.zZxad7LdbXDbEbQanWyMZQ"
+def _create_icons(image_base64, image_definition_data, output_directory):
     icons_directory = os.path.join(output_directory, "icons")
     if not os.path.isdir(icons_directory):
         os.makedirs(icons_directory)
@@ -173,53 +170,33 @@ def _create_icons(image_path, image_definition_data, output_directory):
         img_def = image_definition_data[name]
         file_name = "{}.svg".format(name)
         svg_data = template_data.format(
-            width=img_def["width"], height=img_def["height"], x=img_def["x"], y=img_def["y"], image=image_path)
+            width=img_def["width"], height=img_def["height"], x=img_def["x"], y=img_def["y"], base64_data=image_base64
+        )
         target_file = os.path.join(icons_directory, file_name)
         with open(target_file, "w") as f:
             f.write(svg_data)
 
 
-def _load_sprite_data(output_directory, style: dict) -> Tuple:
+def _load_sprite_data(style: dict) -> Tuple:
     image_data = None
     image_definition_data = None
     if "sprite" in style:
-        #sven change: pretty sure this format does not work in this orientation
-        # image_url = "{}.png".format(style["sprite"])
-        image_url = "https://api.mapbox.com/styles/v1/cerilewis/cjz0znhqy002n1cncaqj1jk6k/sprite@3x.png?access_token=pk.eyJ1IjoiY2VyaWxld2lzIiwiYSI6ImNpcnp6bzhtcjAwM3cybnMyZHNjajgxOXIifQ.zZxad7LdbXDbEbQanWyMZQ"
-        image_definitions_url = "https://api.mapbox.com/styles/v1/cerilewis/cjz0znhqy002n1cncaqj1jk6k/sprite@3x.json?access_token=pk.eyJ1IjoiY2VyaWxld2lzIiwiYSI6ImNpcnp6bzhtcjAwM3cybnMyZHNjajgxOXIifQ.zZxad7LdbXDbEbQanWyMZQ"
-        # image_definitions_url = "{}.json".format(style["sprite"])
+        image_url = "{}.png".format(style["sprite"])
+        image_definitions_url = "{}.json".format(style["sprite"])
         if not image_url.startswith("http") or not image_definitions_url.startswith("http"):
             return None, None
 
-        # _, image_data = http_get(image_url)
-        image_data = requests.get(image_url)
-        # _, image_definition_data = http_get(image_definitions_url)
-        image_definition_data = requests.get(image_definitions_url)
+        _, image_data = http_get(image_url)
+        _, image_definition_data = http_get(image_definitions_url)
         if not image_data:
             raise "No image found at: {}".format(image_url)
         else:
-            # image_data = base64.b64encode(image_data)
-            #sven change here
-            #let's see if we decode the output if that helps load the png
-            # image_data = base64.b64encode(image_data.content).decode()
-            # image_data = '{}'.format(image_data)
-            # image_data = "{}.png"(image_data)
-
-            #write the data to a local png
-            # with open ("sprite_icons.png", 'wb') as f:
-            #     f.write(image_data.content)
-
-            # image_data = os.path.join(output_directory, "sprite_icons.png")
-            image_data = "http://localhost:8088/sprite_icons.png"
+            image_data = base64.b64encode(image_data)
 
         if not image_definition_data:
             raise "No image definitions found at: {}".format(image_definition_data)
         else:
-            # image_definition_data = json.loads(str(image_definition_data))
-
-            #let's convert to string first
-            image_definition_str = image_definition_data.content.decode("utf-8")
-            image_definition_data = json.loads(image_definition_str)
+            image_definition_data = json.loads(str(image_definition_data))
     return image_data, image_definition_data
 
 
@@ -401,16 +378,13 @@ def _parse_expr(expr, take=None):
                 raise RuntimeError("Data expression operator not implemented: ", op)
 
     fields = _get_qgis_fields(expr)[:take]
-
-    #sven changes
-    #need to parse through these fields and remove the byte character if it exists
-    b_string = "'b'"
-
-    for s, item in enumerate(fields):
-        if b_string in item:
-            new_item = item[2:-1]
-            fields[s] = new_item
-
+	#sven's changes
+	#root cause here is the QGIS expression are not correctly being created here
+	b_string = "'b'"
+	for s, item in enumerate(fields):
+		if b_string in item:
+			new_item = item[2:-1]
+			fields[s] = new_item
 
     result = "+".join(fields)
     return escape_xml(result)
