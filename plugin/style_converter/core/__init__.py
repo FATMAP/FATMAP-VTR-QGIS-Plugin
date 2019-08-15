@@ -155,17 +155,17 @@ def create_icons(style, output_directory):
 #design a new fx here to trigger if the image_data is null (in FATMAP case it is for now)
 #this fx will point to the icon folder included in the repo and copy into the correct path
 def _alt_create_icons(output_directory):
-	#create icon directory where symbols are already looking
-	icons_directory = os.path.join(output_directory, "icons")
+    #create icon directory where symbols are already looking
+    icons_directory = os.path.join(output_directory, "icons")
 
     #make the dir to put icons into
     if not os.path.isdir(icons_directory):
         os.makedirs(icons_directory)
 
-	current_directory = os.path.dirname(os.path.realpath(__file__))
-	fm_icons_directory = current_directory + '/FATMAP_icons/icons'
-	#copy icons from current FATMAP Icon dir into icon directory
-	copy_tree(fm_icons_directory, icons_directory)
+        current_directory = os.path.dirname(os.path.realpath(__file__))
+        fm_icons_directory = current_directory + '/FATMAP_icons/icons'
+        #copy icons from current FATMAP Icon dir into icon directory
+        copy_tree(fm_icons_directory, icons_directory)
 
 def _create_icons(image_base64, image_definition_data, output_directory):
     icons_directory = os.path.join(output_directory, "icons")
@@ -394,13 +394,13 @@ def _parse_expr(expr, take=None):
                 raise RuntimeError("Data expression operator not implemented: ", op)
 
     fields = _get_qgis_fields(expr)[:take]
-	#sven's changes
-	#root cause here is the QGIS expression are not correctly being created here
-	b_string = "'b'"
-	for s, item in enumerate(fields):
-		if b_string in item:
-			new_item = item[2:-1]
-			fields[s] = new_item
+    #sven's changes
+    #root cause here is the QGIS expression are not correctly being created here
+    b_string = "'b'"
+    for s, item in enumerate(fields):
+        if b_string in item:
+            new_item = item[2:-1]
+            fields[s] = new_item
 
     result = "+".join(fields)
     return escape_xml(result)
