@@ -164,6 +164,9 @@ def _alt_create_icons(output_directory):
 
         current_directory = os.path.dirname(os.path.realpath(__file__))
         fm_icons_directory = current_directory + '/FATMAP_icons/icons'
+        icon_bool = os.path.exists(fm_icons_directory)
+        if icon_bool is False:
+            raise Exception('No icon folder found at:', fm_icons_directory)
         #copy icons from current FATMAP Icon dir into icon directory
         copy_tree(fm_icons_directory, icons_directory)
 
@@ -395,7 +398,7 @@ def _parse_expr(expr, take=None):
 
     fields = _get_qgis_fields(expr)[:take]
     #sven's changes
-    #root cause here is the QGIS expression are not correctly being created here
+    #root cause here is the QGIS expressions are not correctly being created here
     b_string = "'b'"
     for s, item in enumerate(fields):
         if b_string in item:
